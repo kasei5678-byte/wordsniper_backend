@@ -1,12 +1,72 @@
 <!DOCTYPE html>
 <html lang="ja">
-    <head>
-        <meta charset="UTF-8" />
-        <title>Word Sniper</title>
-    </head>
-    <body>
-        <h1>Word Sniper</h1>
-        <p>サーバーは正常に動いています。</p>
-    </body>
+<head>
+    <meta charset="UTF-8">
+    <title>Word Sniper</title>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <h1>Word Sniper</h1>
+
+    <div id="join">
+        <input id="roomId" placeholder="ルームIDを入力">
+        <input id="playerName" placeholder="名前を入力">
+        <button id="joinBtn">参加</button>
+    </div>
+
+    <div id="game" style="display:none;">
+        <h2 id="card"></h2>
+        <input id="answerInput" placeholder="答えを入力">
+        <button id="answerBtn">送信</button>
+
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        const joinBtn = document.getElementById("joinBtn");
+        const roomIdInput = document.getElementById("roomId");
+        const playerNameInput = document.getElementById("playerName");
+
+        const gameDiv = document.getElementById("game");
+        const joinDiv = document.getElementById("join");
+
+        joinBtn.onclick = () => {
+            const roomId = roomIdInput.value;
+            const name = playerNameInput.value;
+
+            socket.emit("joinRoom", roomId, name);
+        };
+
+        socket.on("startGame", () => {
+            joinDiv.style.display = "none";
+            gameDiv.style.display = "block";
+        });
+
+        socket.on("newCard", (card) => {
+            document.getElementById("card").innerText =
+                `お題: ${card.theme} / 文字: ${card.letter} / 点数: ${card.score}`;
+        });
+
+        const answerBtn = document.getElementById("answerBtn");
+        const answerInput = document.getElementById("answerInput");
+
+        answerBtn.onclick = () => {
+            const word = answerInput.value;
+            const roomId = roomIdInput.value;
+            socket.emit("answer", {
+                roomId,
+                playerId: socket.id,
+                word
+            });
+        };
+
+        socket.on("answerResult", (data) => {
+            const log = document.getElementById("log");
+            log.innerHTML += `<p>${data.playerId} → ${data.word} : ${data.isCorrect ? "⭕" : "❌"}</p>`;
+        });
+    </script>
+</body>
 </html>
 
