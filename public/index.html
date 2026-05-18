@@ -1,72 +1,132 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
     <meta charset="UTF-8">
     <title>Word Sniper</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: url('https://images.unsplash.com/photo-1520975918318-3a8e3b6f52b4?auto=format&fit=crop&w=1400&q=80') no-repeat center/cover;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+        }
+
+        .screen {
+            display: none;
+            text-align: center;
+            background: rgba(0,0,0,0.55);
+            padding: 40px 60px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px);
+        }
+
+        #home { display: block; }
+
+        input {
+            width: 260px;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+        }
+
+        button {
+            width: 200px;
+            padding: 12px;
+            margin-top: 20px;
+            border-radius: 8px;
+            border: none;
+            background: #ff3333;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 0 10px rgba(255,0,0,0.7);
+        }
+
+        button:hover {
+            background: #ff5555;
+            transform: scale(1.05);
+        }
+
+        .spinner {
+            margin: 20px auto 0;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: #ff3333;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Word Sniper</h1>
 
-    <div id="join">
-        <input id="roomId" placeholder="ルームIDを入力">
-        <input id="playerName" placeholder="名前を入力">
-        <button id="joinBtn">参加</button>
+    <!-- ホーム画面 -->
+    <div id="home" class="screen">
+        <h1>WORD SNIPER</h1>
+        <input id="room" placeholder="ルームIDを入力"><br>
+        <input id="name" placeholder="名前を入力"><br>
+        <button id="join-btn">参加</button>
     </div>
 
-    <div id="game" style="display:none;">
-        <h2 id="card"></h2>
-        <input id="answerInput" placeholder="答えを入力">
-        <button id="answerBtn">送信</button>
-
-        <div id="log"></div>
+    <!-- 待機画面 -->
+    <div id="waiting" class="screen">
+        <h1>待機中...</h1>
+        <p>もう1人のプレイヤーを待っています</p>
+        <div class="spinner"></div>
     </div>
 
+    <!-- ゲーム画面 -->
+    <div id="game" class="screen">
+        <h1>ゲーム開始！</h1>
+        <p>ここにゲーム画面を作っていく</p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
 
-        const joinBtn = document.getElementById("joinBtn");
-        const roomIdInput = document.getElementById("roomId");
-        const playerNameInput = document.getElementById("playerName");
+        const home = document.getElementById("home");
+        const waiting = document.getElementById("waiting");
+        const game = document.getElementById("game");
 
-        const gameDiv = document.getElementById("game");
-        const joinDiv = document.getElementById("join");
+        const joinBtn = document.getElementById("join-btn");
 
         joinBtn.onclick = () => {
-            const roomId = roomIdInput.value;
-            const name = playerNameInput.value;
+            const room = document.getElementById("room").value;
+            const name = document.getElementById("name").value;
 
-            socket.emit("joinRoom", roomId, name);
+            if (!room || !name) return;
+
+            home.style.display = "none";
+            waiting.style.display = "block";
+
+            socket.emit("joinRoom", room, name);
         };
 
-        socket.on("startGame", () => {
-            joinDiv.style.display = "none";
-            gameDiv.style.display = "block";
+        socket.on("waiting", () => {
+            waiting.style.display = "block";
         });
 
-        socket.on("newCard", (card) => {
-            document.getElementById("card").innerText =
-                `お題: ${card.theme} / 文字: ${card.letter} / 点数: ${card.score}`;
-        });
-
-        const answerBtn = document.getElementById("answerBtn");
-        const answerInput = document.getElementById("answerInput");
-
-        answerBtn.onclick = () => {
-            const word = answerInput.value;
-            const roomId = roomIdInput.value;
-            socket.emit("answer", {
-                roomId,
-                playerId: socket.id,
-                word
-            });
-        };
-
-        socket.on("answerResult", (data) => {
-            const log = document.getElementById("log");
-            log.innerHTML += `<p>${data.playerId} → ${data.word} : ${data.isCorrect ? "⭕" : "❌"}</p>`;
+        socket.on("matched", () => {
+            waiting.style.display = "none";
+            game.style.display = "block";
         });
     </script>
+
 </body>
 </html>
 
