@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <title>Word Sniper</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: url('https://images.unsplash.com/photo-1520975918318-3a8e3b6f52b4?auto=format&fit=crop&w=1400&q=80') no-repeat center/cover;
-            font-family: 'Segoe UI', sans-serif;
-            color: white;
-        }
+    <head>
+        <meta charset="UTF-8">
+        <title>Word Sniper</title>
+        <style>
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: url('https://images.unsplash.com/photo-1520975918318-3a8e3b6f52b4?auto=format&fit=crop&w=1400&q=80') no-repeat center/cover;
+    font-family: 'Segoe UI', sans-serif;
+    color: white;
+}
 
         .screen {
             display: none;
@@ -69,64 +69,73 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-    </style>
-</head>
+        </style>
+    </head>
 
-<body>
+    <body>
 
-    <!-- ホーム画面 -->
-    <div id="home" class="screen">
-        <h1>WORD SNIPER</h1>
-        <input id="room" placeholder="ルームIDを入力"><br>
-        <input id="name" placeholder="名前を入力"><br>
-        <button id="join-btn">参加</button>
-    </div>
+        <!-- ホーム画面 -->
+        <div id="home" class="screen">
+            <h1>WORD SNIPER</h1>
+            <input id="room" placeholder="ルームIDを入力"><br>
+            <input id="name" placeholder="名前を入力"><br>
+            <button id="join-btn">参加</button>
+        </div>
 
-    <!-- 待機画面 -->
-    <div id="waiting" class="screen">
-        <h1>待機中...</h1>
-        <p>もう1人のプレイヤーを待っています</p>
-        <div class="spinner"></div>
-    </div>
+        <!-- 待機画面 -->
+        <div id="waiting" class="screen">
+            <h1>待機中...</h1>
+            <p>もう1人のプレイヤーを待っています</p>
+            <div class="spinner"></div>
 
-    <!-- ゲーム画面 -->
-    <div id="game" class="screen">
-        <h1>ゲーム開始！</h1>
-        <p>ここにゲーム画面を作っていく</p>
-    </div>
+            <button id="exit-btn" style="margin-top:25px; background:#555;">退出</button>
+        </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
+        <!-- ゲーム画面 -->
+        <div id="game" class="screen">
+            <h1>ゲーム開始！</h1>
+            <p>ここにゲーム画面を作っていく</p>
+        </div>
 
-        const home = document.getElementById("home");
-        const waiting = document.getElementById("waiting");
-        const game = document.getElementById("game");
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            const socket = io();
 
-        const joinBtn = document.getElementById("join-btn");
+            const home = document.getElementById("home");
+            const waiting = document.getElementById("waiting");
+            const game = document.getElementById("game");
 
-        joinBtn.onclick = () => {
-            const room = document.getElementById("room").value;
-            const name = document.getElementById("name").value;
+            const joinBtn = document.getElementById("join-btn");
 
-            if (!room || !name) return;
+            joinBtn.onclick = () => {
+                const room = document.getElementById("room").value;
+                const name = document.getElementById("name").value;
 
-            home.style.display = "none";
-            waiting.style.display = "block";
+                if (!room || !name) return;
 
-            socket.emit("joinRoom", room, name);
-        };
+                home.style.display = "none";
+                waiting.style.display = "block";
 
-        socket.on("waiting", () => {
-            waiting.style.display = "block";
-        });
+                socket.emit("joinRoom", room, name);
+            };
 
-        socket.on("matched", () => {
-            waiting.style.display = "none";
-            game.style.display = "block";
-        });
-    </script>
+            socket.on("waiting", () => {
+                waiting.style.display = "block";
+            });
 
-</body>
+            socket.on("matched", () => {
+                waiting.style.display = "none";
+                game.style.display = "block";
+            });
+
+            // ★ 退出ボタンの動作
+            document.getElementById("exit-btn").onclick = () => {
+                waiting.style.display = "none";
+                home.style.display = "block";
+            };
+
+        </script>
+
+    </body>
 </html>
 
