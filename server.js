@@ -17,6 +17,9 @@ app.get("/", (req, res) => {
 
 io.on("connection", (socket) => {
     socket.on("joinRoom", (roomId, name) => {
+
+        socket.data.name = name;
+
         const room = io.sockets.adapter.rooms.get(roomId);
         const count = room ? room.size : 0;
 
@@ -31,7 +34,13 @@ io.on("connection", (socket) => {
         if (newCount === 1) {
             socket.emit("waiting");
         } else if (newCount === 2) {
-            io.to(roomId).emit("matched");
+
+            const clients = [...io.sockets.adapter.rooms.get(roomId)];
+
+            const p1 = io.sockets.sockets.get(clients[0]).data.name;
+            const p2 = io.sockets.sockets.get(clients[1]).data.name;
+
+            io.to(roomId).emit("matched", {p1, p2 });
         }
     });
 });
