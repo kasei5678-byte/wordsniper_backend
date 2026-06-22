@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Word Sniper</title>
+<head>
+    <meta charset="UTF-8">
+    <title>Word Sniper</title>
 
-        <style>
+    <style>
 /* ======== 共通背景 ======== */
 body{
     margin:0;
@@ -119,23 +119,16 @@ button:hover{
     font-size:20px;
 }
 
-.bottom-menu{
-    display:flex;
-    gap:10px;
-    margin-top:auto;
+/* ======== 回答ログ ======== */
+#answerLog{
+    margin-top:20px;
+    background:#eee;
+    padding:10px;
+    border-radius:10px;
+    height:120px;
+    overflow-y:auto;
+    font-size:18px;
 }
-
-.bottom-menu button{
-    flex:1;
-    height:80px;
-    font-size:20px;
-    border-radius:12px;
-    border:none;
-    color:white;
-    cursor:pointer;
-}
-
-.btn1{ background:red; }
 
 /* ======== 回答入力 ======== */
 #answerArea{
@@ -160,6 +153,7 @@ button:hover{
     margin-bottom:15px;
 }
 
+/* ======== 正解/不正解 ======== */
 #resultMessage{
     position:absolute;
     top:60%;
@@ -171,122 +165,157 @@ button:hover{
     text-shadow:0 0 10px orange;
     display:none;
 }
-        </style>
-    </head>
+    </style>
+</head>
 
-    <body>
+<body>
 
-        <!-- ============================
-            ホーム画面
-            ============================ -->
-            <div id="home" class="screen">
-                <h1>WORD SNIPER</h1>
-                <input id="room" placeholder="ルームIDを入力"><br>
-                <input id="name" placeholder="名前を入力"><br>
-                <button id="join-btn">参加</button>
+<!-- ホーム画面 -->
+<div id="home" class="screen">
+    <h1>WORD SNIPER</h1>
+    <input id="room" placeholder="ルームIDを入力"><br>
+    <input id="name" placeholder="名前を入力"><br>
+    <button id="join-btn">参加</button>
+</div>
+
+<!-- 待機画面 -->
+<div id="waiting" class="screen">
+    <h1>待機中...</h1>
+    <p>もう1人のプレイヤーを待っています</p>
+    <div class="spinner"></div>
+    <button id="exit-btn" style="margin-top:25px; background:#555;">退出</button>
+</div>
+
+<!-- ゲーム画面 -->
+<div id="game" class="screen">
+    <div class="container">
+
+        <div id="scores">
+            <div class="player-box">
+                <div class="player-name" id="playerName1">1P</div>
+                <div class="player-score" id="score1">0</div>
             </div>
 
-            <!-- ============================
-                待機画面
-                ============================ -->
-                <div id="waiting" class="screen">
-                    <h1>待機中...</h1>
-                    <p>もう1人のプレイヤーを待っています</p>
-                    <div class="spinner"></div>
-                    <button id="exit-btn" style="margin-top:25px; background:#555;">退出</button>
-                </div>
+            <div class="player-box">
+                <div class="player-name" id="playerName2">2P</div>
+                <div class="player-score" id="score2">0</div>
+            </div>
+        </div>
 
-                <!-- ============================
-                    ゲーム画面
-                    ============================ -->
-                    <div id="game" class="screen">
-                        <div class="container">
+        <div class="box-container">
+            <button class="box" id="themeBox">テーマ</button>
+            <button class="box" id="wordBox">頭文字</button>
+        </div>
 
-                            <div id="scores">
-                                <div class="player-box">
-                                    <div class="player-name" id="playerName1">1P</div>
-                                    <div class="player-score" id="score1">0</div>
-                                </div>
+        <div id="answerLog"></div>
 
-                                <div class="player-box">
-                                    <div class="player-name" id="playerName2">2P</div>
-                                    <div class="player-score" id="score2">0</div>
-                                </div>
-                            </div>
+        <div id="resultMessage"></div>
 
-                            <div class="box-container">
-                                <button class="box" id="themeBox">乗り物</button>
-                                <button class="box" id="wordBox">ひ</button>
-                            </div>
+        <div id="answerArea">
+            <input type="text" id="answerInput" onkeydown="checkEnter(event)">
+            <button onclick="sendAnswer()">送信</button>
+        </div>
 
-                            <div id="resultMessage"></div>
+        <div class="bottom-menu">
+            <button class="btn1" onclick="openInput()" id="playerButton">回答</button>
+        </div>
 
-                            <div id="answerArea">
-                                <input type="text" id="answerInput" onkeydown="checkEnter(event)">
-                                <button onclick="sendAnswer()">送信</button>
-                            </div>
+    </div>
+</div>
 
-                            <div class="bottom-menu">
-                                <button class="btn1" onclick="openInput()" id="playerButton">回答</button>
-                            </div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+/* ======== Socket.io ======== */
+const socket = io();
 
-                        </div>
-                    </div>
+const home = document.getElementById("home");
+const waiting = document.getElementById("waiting");
+const game = document.getElementById("game");
 
-                    <script src="/socket.io/socket.io.js"></script>
-                    <script>
-                        /* ======== Socket.io ======== */
-                        const socket = io();
+document.getElementById("join-btn").onclick = () => {
+    const room = document.getElementById("room").value;
+    const name = document.getElementById("name").value;
 
-                        const home = document.getElementById("home");
-                        const waiting = document.getElementById("waiting");
-                        const game = document.getElementById("game");
+    if(!room || !name) return;
 
-                        document.getElementById("join-btn").onclick = () => {
-                            const room = document.getElementById("room").value;
-                            const name = document.getElementById("name").value;
+    home.style.display = "none";
+    waiting.style.display = "block";
 
-                            if(!room || !name) return;
+    socket.emit("joinRoom", room, name);
+};
 
-                            home.style.display = "none";
-                            waiting.style.display = "block";
+socket.on("waiting", () => {
+    waiting.style.display = "block";
+});
 
-                            socket.emit("joinRoom", room, name);
-                        };
+socket.on("matched", (players) => {
+    waiting.style.display = "none";
+    game.style.display = "block";
 
-                        socket.on("waiting", () => {
-                            waiting.style.display = "block";
-                        });
+    document.getElementById("playerName1").textContent = players.p1;
+    document.getElementById("playerName2").textContent = players.p2;
+});
 
-                        socket.on("matched", (players) => {
-                            waiting.style.display = "none";
-                            game.style.display = "block";
-                            document.getElementById("playerName1").textContent = players.p1;
-                            document.getElementById("playerName2").textContent = players.p2;
-                        });
+/* ======== ラウンド開始（テーマ＋頭文字） ======== */
+socket.on("startRound", (data) => {
+    document.getElementById("themeBox").textContent = data.theme;
+    document.getElementById("wordBox").textContent = data.head;
 
-                        /* ======== ゲーム UI ======== */
-                        function openInput(){
-                            document.getElementById("answerArea").style.display = "block";
-                        }
+    document.getElementById("answerLog").innerHTML = "";
+});
 
-                        function sendAnswer(){
-                            document.getElementById("answerArea").style.display = "none";
-                        }
+/* ======== 判定結果 ======== */
+socket.on("judgeResult", (data) => {
+    addLog(`${data.player}：${data.answer} → ${data.correct ? "⭕ 正解" : "❌ 不正解"}`);
+    showJudgeMessage(data.correct);
+});
 
-                        function checkEnter(event){
-                            if(event.key === "Enter"){
-                                sendAnswer();
-                            }
-                        }
+function addLog(message){
+    const log = document.getElementById("answerLog");
+    const p = document.createElement("p");
+    p.textContent = message;
+    log.appendChild(p);
+    log.scrollTop = log.scrollHeight;
+}
 
-                        /* ======== 退出 ======== */
-                        document.getElementById("exit-btn").onclick = () => {
-                            waiting.style.display = "none";
-                            home.style.display = "block";
-                        };
-                    </script>
+function showJudgeMessage(isCorrect){
+    const msg = document.getElementById("resultMessage");
 
-    </body>
+    msg.textContent = isCorrect ? "正解！" : "不正解！";
+    msg.style.color = isCorrect ? "gold" : "red";
+    msg.style.display = "block";
+
+    setTimeout(() => {
+        msg.style.display = "none";
+    }, 1200);
+}
+
+/* ======== 回答入力 ======== */
+function openInput(){
+    document.getElementById("answerArea").style.display = "block";
+}
+
+function sendAnswer(){
+    const answer = document.getElementById("answerInput").value;
+
+    socket.emit("answer", answer);
+
+    document.getElementById("answerArea").style.display = "none";
+    document.getElementById("answerInput").value = "";
+}
+
+function checkEnter(event){
+    if(event.key === "Enter"){
+        sendAnswer();
+    }
+}
+
+/* ======== 退出 ======== */
+document.getElementById("exit-btn").onclick = () => {
+    waiting.style.display = "none";
+    home.style.display = "block";
+};
+</script>
+
+</body>
 </html>
-
