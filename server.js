@@ -1,17 +1,16 @@
 const express = require("express");
 const app = express();
 const port = 3000;
-//const userRouter = require("./routes/user");
+const http = require('http');
+const { Server } = require('socket.io');
 const fs = require("fs");
 const ans_check = require("./ans_check");
 const testAI = require("./test");
+const server = http.createServer(app);
 
-app.use(express.json());
-//websaba
 
-//app.use(mylogger);
+
 app.use(express.static("public"));
-//app.set("view engine", "ejs");
 
 app.get("/", (req, res)=> {
     res.render("index", {text:"Nodejs and Express"});
@@ -43,19 +42,7 @@ app.post("/AI_test", async(req, res) => {
     const AI_check = await testAI(the, char, answer);
     res.send(AI_check);
 });
-/*
-app.post("/write", async(req, res) => { 
-    const the_index = req.body.theme_INDEX;
-    const answer = req.body.ans;
-    await writing(the_index, answer);
-})
-*/
-
-//routing
-//app.use("/user", userRouter);
-//app.use("/authuser", authuserRouter);
-
-//middle
 
 
-app.listen(port, () => console.log("server get up"))
+
+server.listen(port, () => console.log("server get up"))
