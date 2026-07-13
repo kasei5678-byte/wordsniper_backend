@@ -1,39 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>ワードスナイパー</title>
-<link rel = "stylesheet" href="./style.css">
+    <meta charset="UTF-8">
+    <title>ワードスナイパー</title>
+    <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
-<div id="startScreen">
 
+<!-- スタート画面 -->
+<div id="startScreen">
     <h1>ワードスナイパー</h1>
 
-    <button onclick="createRoom()">
-        ルーム作成
-    </button>
-        
-    <button onclick="joinRoom()">
-        ルーム参加
-    </button>
-
-    <button onclick="showRules()">
-        遊び方
-    </button>
-
-    <button onclick="startGame()">
-        ゲームをプレイする
-    </button>
-
+    <button onclick="goCreate()">ルーム作成</button>
+    <button onclick="goJoin()">ルーム参加</button>
+    <button onclick="showRules()">遊び方</button>
 </div>
 
+<!-- 遊び方 -->
 <div id="rulesScreen" style="display:none;">
     <h2>遊び方</h2>
-    
+
     <div class="rules-content">
-        <p style="text-align: center; font-weight: bold; color: #f44336; margin-bottom: 15px;">
+        <p style="text-align:center;font-weight:bold;color:#f44336;margin-bottom:15px;">
             ⚠️ 回答は【ひらがな】または【カタカナ】で入力してください
         </p>
 
@@ -43,501 +32,168 @@
             👉 「あいすくりーむ」「アイス」など
         </div>
 
-        <ul style="padding-left: 20px; margin-top: 15px;">
-            <li>⭕ <strong>正解：</strong> ＋10点</li>
-            <li>❌ <strong>不正解：</strong> －10点</li>
-            <li>🏆 <strong>50点先取</strong> で勝ちとなります！</li>
+        <ul style="padding-left:20px;margin-top:15px;">
+            <li>⭕ 正解：＋10点</li>
+            <li>❌ 不正解：－10点</li>
+            <li>🏆 50点先取で勝ち！</li>
         </ul>
     </div>
 
-    <button class="grayBtn" onclick="backStartFromRules()">
-        戻る
-    </button>
+    <button class="grayBtn" onclick="backStart()">戻る</button>
 </div>
 
-
+<!-- ルーム参加 -->
 <div id="joinScreen" style="display:none;">
-
     <h2>ルーム参加</h2>
 
     <p>あなたの名前</p>
     <input type="text" id="joinPlayerNameInput" placeholder="名前を入力">
 
     <p>ルーム番号</p>
-    <input type="text" id="roomCode" placeholder="ルーム番号（6桁）">
+    <input type="text" id="joinRoomCodeInput" placeholder="ルーム番号（6桁）">
 
-    <button class="greenBtn" onclick="goToWaitingFromJoin()">
-        参加して待機
-    </button>
-
-    <button class="grayBtn" onclick="backStartFromJoin()">
-        戻る
-    </button>
+    <button class="greenBtn" onclick="joinRoom()">参加して待機</button>
+    <button class="grayBtn" onclick="backStart()">戻る</button>
 </div>
 
+<!-- ルーム作成（手動入力版） -->
 <div id="createScreen" style="display:none;">
-
     <h2>ルーム作成</h2>
 
     <p>あなたの名前</p>
-
-    <input
-        type="text"
-        id="playerNameInput"
-        placeholder="名前を入力">
+    <input type="text" id="createPlayerNameInput" placeholder="名前を入力">
 
     <p>ルーム番号</p>
+    <input type="text" id="createRoomCodeInput" placeholder="ルーム番号（6桁）">
 
-    <div id="roomNumber">483291</div>
-
-    <p class="roomText">
-        相手にこの番号を教えてください
-    </p>
-
-    <button class="greenBtn" onclick="goToWaitingFromCreate()">
-        ホストとして待機
-    </button>
-
-    <button class="grayBtn"
-            onclick="backStart()">
-        戻る
-    </button>
-    
+    <button class="greenBtn" onclick="createRoom()">ホストとして待機</button>
+    <button class="grayBtn" onclick="backStart()">戻る</button>
 </div>
 
-<!-- 💡 新しく追加する待機画面 -->
+<!-- 待機画面 -->
 <div id="waitingScreen" style="display:none;">
     <h2>ルーム待機中</h2>
+
     <div class="loading-box">
         <span class="dots">対戦相手を待っています</span>
     </div>
-    <p class="room-display-text">ルーム番号: <span id="displayRoomNumber">------</span></p>
-    
-    <button class="grayBtn" onclick="backStartFromWaiting()">
-        キャンセルのため戻る
-    </button>
+
+    <p class="room-display-text">
+        ルーム番号: <span id="displayRoomNumber">------</span>
+    </p>
+
+    <button class="grayBtn" onclick="cancelWaiting()">キャンセル</button>
 </div>
 
-<div class="container" id="gameScreen" style="display:none;">
-
-    <div id="globalTimerBar" style="width: 100%; height: 12px; background: #eee; border-radius: 10px; overflow: hidden; margin-bottom: 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);">
-        <div id="globalTimerFill" style="width: 100%; height: 100%; background: linear-gradient(90deg,#4CAF50,#ffeb3b,#f44336); transition: width 1s linear, background 0.5s;"></div>
+<!-- ゲーム画面 -->
+<div id="gameScreen" style="display:none;">
+    <div id="globalTimerBar">
+        <div id="globalTimerFill"></div>
     </div>
 
     <div id="scores">
-
-        <div class="player-box">
-            <div class="player-name" id="playerName1">1P</div>
-            <div class="player-score" id="score1">0</div>
-        </div>
-
-        <div class="player-box">
-            <div class="player-name">2P</div>
-            <div class="player-score" id="score2">0</div>
-        </div>
-
+        <div class="player-box" id="p1Box">あなた：<span id="p1Score">0</span></div>
+        <div class="player-box" id="p2Box">相手：<span id="p2Score">0</span></div>
     </div>
 
-    <div class="box-container">
+    <h2 id="themeText">テーマ：</h2>
+    <h3 id="letterText">文字：</h3>
 
-        <button class="box" onclick="changeTheme()" id="themeBox">
-        </button>
+    <input type="text" id="answerInput" placeholder="回答を入力">
+    <button onclick="sendAnswer()">送信</button>
 
-        <button class="box" id="wordBox">
-        </button>
-
-    </div>
-
-    <div id="resultMessage"></div>
-
-    <div id="answerArea" style="display:none;">
-        
-        <div id="timerBar" style="display:none; margin-bottom: 15px;">
-            <div id="timerFill"></div>
-        </div>
-
-        <input type="text"
-                id="answerInput"
-                onkeydown="checkEnter(event)"
-                placeholder="回答を入力">
-
-        <button onclick="sendAnswer()">
-            送信
-        </button>
-
-    </div>
-
-    <div class="bottom-menu">
-
-        <button class="btn1" onclick="openInput()" id="playerButton">
-            1P
-        </button>
-
-    </div>
-
-    <div id="judgeArea" style="display:none;">
-
-        <p>チャレンジしますか？</p>
-
-        <button class="yes-btn" onclick="aiJudgeYes()">
-            はい
-        </button>
-
-        <button class="no-btn" onclick="aiJudgeNo()">
-            いいえ
-        </button>
-
-    </div>
-
+    <div id="logArea"></div>
 </div>
 
-<!-- ゲーム終了画面 -->
-<div id="victoryScreen">
-    <h1>🏆 GAME OVER 🏆</h1>
-    <div id="winnerAnnounce">X Pの勝利！</div>
-    
-    <div class="final-score-container">
-        <h3>最終スコア</h3>
-        <div class="final-score-flex">
-            <div>1P: <span id="finalScore1" class="p1-score">0</span>点</div>
-            <div>2P: <span id="finalScore2" class="p2-score">0</span>点</div>
-        </div>
-    </div>
-
-    <!-- 既存のgreenBtnと、新しく作ったrestart-btnクラスを付与 -->
-    <button class="greenBtn restart-btn" onclick="restartGame()">
-        もう一度遊ぶ
-    </button>
-</div>
-    
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
-let socket = io();
+const socket = io();
 
-let globalTimer = 10;
-let globalTimerId;
-
-async function startGame(){
-    document.getElementById("startScreen").style.display = "none";
-    document.getElementById("gameScreen").style.display = "flex";
-
-    let playerName = document.getElementById("playerNameInput").value;
-    changeTheme();
+// 画面切り替え
+function hideAll() {
+    document.querySelectorAll("div[id$='Screen']").forEach(e => e.style.display = "none");
 }
 
-function createRoom(){
-    document.getElementById("startScreen").style.display="none";
-    document.getElementById("createScreen").style.display="flex";
+function goCreate() {
+    hideAll();
+    document.getElementById("createScreen").style.display = "block";
 }
 
-function joinRoom(){
-    document.getElementById("startScreen").style.display = "none";
-    document.getElementById("joinScreen").style.display = "flex"; 
+function goJoin() {
+    hideAll();
+    document.getElementById("joinScreen").style.display = "block";
 }
 
-function backStart(){
-    document.getElementById("createScreen").style.display="none";
-    document.getElementById("startScreen").style.display="flex";
+function showRules() {
+    hideAll();
+    document.getElementById("rulesScreen").style.display = "block";
 }
 
-function backStartFromJoin(){
-    document.getElementById("joinScreen").style.display = "none";
-    document.getElementById("startScreen").style.display = "flex";
+function backStart() {
+    hideAll();
+    document.getElementById("startScreen").style.display = "block";
 }
 
-function openInput(){
-    clearInterval(globalTimerId); 
-    
-    document.getElementById("answerArea").style.display = "block";
-    document.getElementById("timerBar").style.display = "block"; 
-    document.getElementById("playerButton").disabled = true;
-    startTimer();
-    
-    setTimeout(() => {
-        document.getElementById("answerInput").focus();
-    }, 50);
+// ルーム作成
+function createRoom() {
+    const name = document.getElementById("createPlayerNameInput").value;
+    const room = document.getElementById("createRoomCodeInput").value;
+
+    socket.emit("createRoom", { playerName: name, roomCode: room });
+
+    hideAll();
+    document.getElementById("waitingScreen").style.display = "block";
+    document.getElementById("displayRoomNumber").textContent = room;
 }
 
-async function sendAnswer(){
-    clearInterval(timerId);
-    document.getElementById("timerBar").style.display = "none"; 
-    socket.emit("ans_check", (document.getElementById("answerInput").value));
+// ルーム参加
+function joinRoom() {
+    const name = document.getElementById("joinPlayerNameInput").value;
+    const room = document.getElementById("joinRoomCodeInput").value;
+
+    socket.emit("joinRoom", { playerName: name, roomCode: room });
+
+    hideAll();
+    document.getElementById("waitingScreen").style.display = "block";
+    document.getElementById("displayRoomNumber").textContent = room;
+}
+
+// 待機キャンセル
+function cancelWaiting() {
+    socket.emit("cancelWaiting");
+    backStart();
+}
+
+// ゲーム開始
+socket.on("startGame", (data) => {
+    hideAll();
+    document.getElementById("gameScreen").style.display = "block";
+
+    document.getElementById("themeText").textContent = "テーマ：" + data.theme;
+    document.getElementById("letterText").textContent = "文字：" + data.letter;
+});
+
+// スコア更新
+socket.on("scoreUpdate", (data) => {
+    document.getElementById("p1Score").textContent = data.p1;
+    document.getElementById("p2Score").textContent = data.p2;
+});
+
+// ログ表示
+socket.on("log", (msg) => {
+    const log = document.getElementById("logArea");
+    const div = document.createElement("div");
+    div.textContent = msg;
+    log.appendChild(div);
+});
+
+// 回答送信
+function sendAnswer() {
+    const ans = document.getElementById("answerInput").value;
+    socket.emit("answer", ans);
     document.getElementById("answerInput").value = "";
-}
-
-socket.on("ans_check", function(ret){
-    if(ret.TF.includes("ok")){
-        showMessage("正解！","gold");
-        addPoint(1, 10); // 💡 正解で「10点」に変更
-        changeTheme(); 
-        document.getElementById("playerButton").disabled = false;
-    }
-    else if(ret.TF.includes("NG")){
-        document.getElementById("judgeArea").style.display ="block";
-    }
-    else{console.log("error");}
-
-    document.getElementById("answerArea").style.display ="none";
-});
-
-async function aiJudgeYes(){
-    clearInterval(timerId);
-    socket.emit("AI_test", (document.getElementById("answerInput").value));
-}
-
-socket.on("AI_check", function(answer){
-    console.log("ans =", answer);
-    console.log("type =", typeof answer);
-    if(answer.includes("1")){
-        showMessage("正解！","gold");
-        addPoint(1, 10); // 💡 AI判定で正解したときも「10点」に変更
-        changeTheme();
-        document.getElementById("playerButton").disabled = false;
-    }
-    else if(answer.includes("0")){
-        document.getElementById("judgeArea").style.display ="block";
-        showMessage("不正解！","red");
-        addPoint(1, 10); // 💡 チャレンジ失敗(不正解)で「-10点」に変更
-        document.getElementById("playerButton").disabled = false;
-    }
-    else{console.log("error");}
-
-    document.getElementById("judgeArea").style.display="none";
-});
-
-async function aiJudgeNo(){
-    clearInterval(timerId);
-    showMessage("不正解！","red");
-    addPoint(1, 10); // 💡 チャレンジせずに不正解確定のときも「-10点」に変更
-    document.getElementById("judgeArea").style.display="none";
-    document.getElementById("playerButton").disabled = false; 
-    changeTheme(); 
-}
-
-let scores = [0,0];
-
-let timer = 10;
-let timerId;
-
-// 💡 得点追加と50点先取による勝利画面移動の処理
-function addPoint(player, PT){
-    scores[player - 1] += PT;
-    
-    // マイナス値になっても点数が崩れないよう、0点未満にならないストッパー（必要なければ消してOKです）
-    if(scores[player - 1] < 0) {
-        scores[player - 1] = 0;
-    }
-
-    document.getElementById("score" + player).textContent = scores[player - 1];
-
-    // 💡 50点先取で勝利画面へ移動
-    if(scores[player - 1] >= 50){
-        // すべてのタイマーを停止
-        clearInterval(globalTimerId);
-        clearInterval(timerId);
-
-        // ゲーム画面を隠して、勝利画面を表示する
-        document.getElementById("gameScreen").style.display = "none";
-        document.getElementById("victoryScreen").style.display = "block";
-
-        // 勝利画面にテキストと最終スコアをセット
-        document.getElementById("winnerAnnounce").textContent = player + "P の勝利！🏆";
-        document.getElementById("finalScore1").textContent = scores[0];
-        document.getElementById("finalScore2").textContent = scores[1];
-    }
-}
-
-// 💡 ゲームをはじめからリトライする関数
-function restartGame() {
-    // スコアの初期化
-    scores = [0, 0];
-    document.getElementById("score1").textContent = "0";
-    document.getElementById("score2").textContent = "0";
-
-    // 画面の切り替え
-    document.getElementById("victoryScreen").style.display = "none";
-    document.getElementById("gameScreen").style.display = "flex";
-
-    // ボタンの復活と入力エリアの初期化
-    document.getElementById("playerButton").disabled = false;
-    document.getElementById("answerArea").style.display = "none";
-    document.getElementById("judgeArea").style.display = "none";
-    document.getElementById("answerInput").value = "";
-
-    // 新しくお題を読み込んでスタート
-    changeTheme();
-}
-
-async function changeTheme(){
-    clearInterval(timerId);
-    document.getElementById("timerBar").style.display = "none"; 
-    
-    let bar = document.getElementById("timerFill");
-    bar.style.width = "100%";
-    bar.style.background = "linear-gradient(90deg,#4CAF50,#ffeb3b,#f44336)";
-    bar.style.animation = "none";
-    
-    startGlobalTimer();
-
-    console.log("iou");
-    socket.emit("give_theme");
-    socket.emit("give_word");
-}
-
-socket.on("give_theme", (theme) => {
-    document.getElementById("themeBox").textContent = theme;
-});
-
-socket.on("give_word", (word) => {
-    document.getElementById("wordBox").textContent = word;
-});
-
-function checkEnter(event){
-    if(event.key === "Enter"){
-        sendAnswer();
-    }
-}
-
-function startGlobalTimer(){
-    globalTimer = 10;
-    let gBar = document.getElementById("globalTimerFill");
-    gBar.style.width = "100%";
-    gBar.style.background = "linear-gradient(90deg,#4CAF50,#ffeb3b,#f44336)";
-    gBar.style.animation = "none";
-
-    clearInterval(globalTimerId);
-
-    globalTimerId = setInterval(function(){
-        globalTimer--;
-        gBar.style.width = (globalTimer / 10 * 100) + "%";
-
-        if(globalTimer <= 3){
-            gBar.style.background = "#f44336";
-            gBar.style.animation = "blink 0.5s infinite";
-        }
-
-        if(globalTimer <= 0){
-            clearInterval(globalTimerId);
-            clearInterval(timerId); 
-
-            document.getElementById("answerArea").style.display = "none";
-            document.getElementById("judgeArea").style.display = "none";
-            document.getElementById("timerBar").style.display = "none";
-            document.getElementById("answerInput").value = "";
-            document.getElementById("playerButton").disabled = false; 
-
-            showMessage("時間切れ！", "red");
-            addpoint(1, 10);
-
-            setTimeout(function(){
-                changeTheme();
-            }, 2000);
-        }
-    }, 1000);
-}
-
-function startTimer(){
-    timer = 10;
-    let bar = document.getElementById("timerFill");
-    bar.style.width = "100%";
-    bar.style.animation = "none";
-
-    clearInterval(timerId);
-
-    timerId = setInterval(function(){
-        timer--;
-        bar.style.width = (timer / 10 * 100) + "%";
-
-        if(timer <= 3){
-            bar.style.background = "#f44336";
-            bar.style.animation = "blink 0.5s infinite";
-        }
-
-        if(timer <= 0){
-            clearInterval(timerId);
-
-            document.getElementById("answerArea").style.display = "none";
-            document.getElementById("timerBar").style.display = "none";
-            document.getElementById("answerInput").value = "";
-
-            showMessage("時間切れ！","red");
-            addPoint(1, -10); // 💡 1P入力時間切れも「-10点」に変更
-
-            document.getElementById("playerButton").disabled = false;
-
-            setTimeout(function(){
-                changeTheme();
-            },2000);
-        }
-    },1000);
-}
-
-function showMessage(text,color){
-    let message = document.getElementById("resultMessage");
-    message.textContent = text;
-    message.style.color = color;
-    message.style.display = "block";
-
-    setTimeout(function(){
-        message.style.display = "none";
-    },1000);
-}
-
-// 💡 ルーム作成画面から待機画面へ
-function goToWaitingFromCreate() {
-    let playerName = document.getElementById("playerNameInput").value;
-    if(!playerName) {
-        alert("名前を入力してください");
-        return;
-    }
-    
-    // 作成画面で表示されているルーム番号を取得して待機画面に反映
-    let roomNum = document.getElementById("roomNumber").textContent.trim();
-    document.getElementById("displayRoomNumber").textContent = roomNum;
-
-    document.getElementById("createScreen").style.display = "none";
-    document.getElementById("waitingScreen").style.display = "flex";
-    
-    // 既存のサーバー通信処理があればここで呼ぶ (例: socket.emit("create_room", ...))
-    // ※もし相手が来たら自動で startGame() が呼ばれるようにサーバー側と連動させてください
-}
-
-// 💡 ルーム参加画面から待機画面へ
-function goToWaitingFromJoin() {
-    let playerName = document.getElementById("joinPlayerNameInput").value;
-    let roomCode = document.getElementById("roomCode").value;
-    
-    if(!playerName || !roomCode) {
-        alert("名前とルーム番号を入力してください");
-        return;
-    }
-
-    document.getElementById("displayRoomNumber").textContent = roomCode;
-
-    document.getElementById("joinScreen").style.display = "none";
-    document.getElementById("waitingScreen").style.display = "flex";
-
-    // 既存のサーバー参加処理を実行
-    // joinRoomServer(); 
-}
-
-// 💡 待機画面からキャンセルして戻る
-function backStartFromWaiting() {
-    document.getElementById("waitingScreen").style.display = "none";
-    document.getElementById("startScreen").style.display = "flex";
-    
-    // 必要に応じてサーバーに退出を伝える処理をココに引く (例: socket.emit("leave_room"))
-}
-
-// 💡 [既存関数の修正] ゲームが始まったら待機画面を隠すようにする
-async function startGame(){
-    document.getElementById("startScreen").style.display = "none";
-    document.getElementById("waitingScreen").style.display = "none"; // 追加
-    document.getElementById("gameScreen").style.display = "flex";
-
-    changeTheme();
 }
 </script>
+
 </body>
 </html>
