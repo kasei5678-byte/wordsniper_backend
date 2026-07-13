@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -28,14 +29,14 @@
 
         <p>テーマと文字に合う言葉を答えます。</p>
         <div class="example">
-            例）テーマ：<strong>食べ物</strong> ＋ 文字：<strong>「あ」</strong><br>
+            例）テーマ：<strong>食べ物</strong> ＊ 文字：<strong>「あ」</strong><br>
             👉 「あいすくりーむ」「アイス」など
         </div>
 
         <ul style="padding-left:20px;margin-top:15px;">
             <li>⭕ 正解：＋10点</li>
             <li>❌ 不正解：－10点</li>
-            <li>🏆 50点先取で勝ち！</li>
+            <li>🏆 100点先取で勝ち！</li>
         </ul>
     </div>
 
@@ -56,7 +57,7 @@
     <button class="grayBtn" onclick="backStart()">戻る</button>
 </div>
 
-<!-- ルーム作成（手動入力版） -->
+<!-- ルーム作成 -->
 <div id="createScreen" style="display:none;">
     <h2>ルーム作成</h2>
 
@@ -65,6 +66,11 @@
 
     <p>ルーム番号</p>
     <input type="text" id="createRoomCodeInput" placeholder="ルーム番号（6桁）">
+
+    <label>
+        <input type="checkbox" id="publicCheck">
+        公開ルームにする
+    </label>
 
     <button class="greenBtn" onclick="createRoom()">ホストとして待機</button>
     <button class="grayBtn" onclick="backStart()">戻る</button>
@@ -87,20 +93,18 @@
 
 <!-- ゲーム画面 -->
 <div id="gameScreen" style="display:none;">
-    <div id="globalTimerBar">
-        <div id="globalTimerFill"></div>
-    </div>
-
-    <div id="scores">
-        <div class="player-box" id="p1Box">あなた：<span id="p1Score">0</span></div>
-        <div class="player-box" id="p2Box">相手：<span id="p2Score">0</span></div>
-    </div>
-
     <h2 id="themeText">テーマ：</h2>
     <h3 id="letterText">文字：</h3>
 
+    <div id="scores">
+        <div class="player-box">あなた：<span id="p1Score">0</span></div>
+        <div class="player-box">相手：<span id="p2Score">0</span></div>
+    </div>
+
     <input type="text" id="answerInput" placeholder="回答を入力">
-    <button onclick="sendAnswer()">送信</button>
+    <button onclick="sendAnswer()">辞書判定で送信</button>
+    <button onclick="sendAI()">AI判定で送信</button>
+    <button onclick="sendNG()">AI使わず送信</button>
 
     <div id="logArea"></div>
 </div>
@@ -138,8 +142,9 @@ function backStart() {
 function createRoom() {
     const name = document.getElementById("createPlayerNameInput").value;
     const room = document.getElementById("createRoomCodeInput").value;
+    const isPublic = document.getElementById("publicCheck").checked;
 
-    socket.emit("createRoom", { playerName: name, roomCode: room });
+    socket.emit("make_room", { name, ID: room, isPublic });
 
     hideAll();
     document.getElementById("waitingScreen").style.display = "block";
@@ -151,7 +156,7 @@ function joinRoom() {
     const name = document.getElementById("joinPlayerNameInput").value;
     const room = document.getElementById("joinRoomCodeInput").value;
 
-    socket.emit("joinRoom", { playerName: name, roomCode: room });
+    socket.emit("join_room", { name, ID: room });
 
     hideAll();
     document.getElementById("waitingScreen").style.display = "block";
@@ -165,32 +170,56 @@ function cancelWaiting() {
 }
 
 // ゲーム開始
-socket.on("startGame", (data) => {
+socket.on("MAKE_GAME", () => {
     hideAll();
     document.getElementById("gameScreen").style.display = "block";
 
-    document.getElementById("themeText").textContent = "テーマ：" + data.theme;
-    document.getElementById("letterText").textContent = "文字：" + data.letter;
+    socket.emit("give_theme");
+    socket.emit("give_word");
+});
+
+// テーマ受信
+socket.on("give_theme", (theme) => {
+    document.getElementById("themeText").textContent = "テーマ：" + theme;
+});
+
+// 文字受信
+socket.on("give_word", (letter) => {
+    document.getElementById("letterText").textContent = "文字：" + letter;
 });
 
 // スコア更新
-socket.on("scoreUpdate", (data) => {
-    document.getElementById("p1Score").textContent = data.p1;
-    document.getElementById("p2Score").textContent = data.p2;
+socket.on("change_point", ({ point, person }) => {
+    if (person === 1) document.getElementById("p1Score").textContent = point;
+    if (person === 2) document.getElementById("p2Score").textContent = point;
 });
 
 // ログ表示
-socket.on("log", (msg) => {
+socket.on("Another_player", ({ person, ans }) => {
     const log = document.getElementById("logArea");
     const div = document.createElement("div");
-    div.textContent = msg;
+    div.textContent = `相手(${person})：${ans}`;
     log.appendChild(div);
 });
 
-// 回答送信
+// 辞書判定
 function sendAnswer() {
     const ans = document.getElementById("answerInput").value;
-    socket.emit("answer", ans);
+    socket.emit("ans_check", { you: 1, ans });
+    document.getElementById("answerInput").value = "";
+}
+
+// AI判定
+function sendAI() {
+    const ans = document.getElementById("answerInput").value;
+    socket.emit("AI_test", { you: 1, ans });
+    document.getElementById("answerInput").value = "";
+}
+
+// AI使わない
+function sendNG() {
+    const ans = document.getElementById("answerInput").value;
+    socket.emit("don't_use_AI", { you: 1, ans });
     document.getElementById("answerInput").value = "";
 }
 </script>
