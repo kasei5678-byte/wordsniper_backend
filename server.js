@@ -1,124 +1,221 @@
-const express = require('express');
+const express = require("express");
+const app = express();
+const port = 3000;
 const http = require('http');
-const { Server } = require('socket.io');
+const server = http.createServer(app);
+const io = require("socket.io")(server);
 const fs = require("fs");
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const ans_check = require("./ans_check");
+const testAI = require("./AI_check");
+//const post_json = require("./input_theme");
 
-const PORT = process.env.PORT || 3000;
 
-// ======== 辞書ファイル読み込み ========
-const themes = JSON.parse(fs.readFileSync("./themes.json", "utf8"));
+app.use(express.static("public"));
 
-// ======== ラウンドデータ保存用 ========
-const roundData = {};
 
-// public を公開
-app.use(express.static('public'));
+const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
 
-app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/public/index.html");
-});
+let themeIndex;
+let wordIndex;
+let Rooms = {};
+let public_roomID = [];
 
-// ======== ランダムテーマ＋頭文字生成 ========
-function getRandomThemeAndHead(themes){
-    const themeList = themes.theme;
-    const wordList = themes.word;
-
-    const theme = themeList[Math.floor(Math.random() * themeList.length)];
-    const head = wordList[Math.floor(Math.random() * wordList.length)];
-
-    return { theme, head };
-}
-
-// ======== ラウンド開始 ========
-function startRound(roomId){
-    const { theme, head } = getRandomThemeAndHead(themes);
-
-    // 判定用データを保存
-    roundData[roomId] = {
-        theme: theme.name,
-        head: head.char,
-        answers: theme.answer
-    };
-
-    // クライアントへ送信
-    io.to(roomId).emit("startRound", {
-        theme: theme.name,
-        head: head.char
-    });
-}
-
-// ======== Socket.io ========
-io.on("connection", (socket) => {
-
-    // ======== ルーム参加 ========
-    socket.on("joinRoom", (roomId, name) => {
-
-        socket.data.name = name;
-        socket.data.roomId = roomId;
-
-        const room = io.sockets.adapter.rooms.get(roomId);
+io.on('connection', (socket) => {
+//ルーム作成リクエスト
+    socket.on("make_room", (data) => {
+        const room = io.sockets.adapter.rooms.get(data.ID);
         const count = room ? room.size : 0;
+        console.log(count);
 
-        if (count >= 2) {
+        if (count!=0) { 
+            socket.emit("can't_make");
+            return;
+        }
+        
+        socket.join(data.ID);
+        socket.data.make_neme = data.name;
+        socket.data.roomID = data.ID;
+        if(data.isPublic){
+            public_roomID.push(data.ID);
+        }
+
+
+        Rooms[data.ID] = {
+            name: [data.name],   // 最初のプレイヤー
+            point: [0]
+        };
+
+        socket.emit("make_room", "OK");
+    })
+
+//ルーム参加画面
+    socket.on("public_room", () => {
+        console.log(public_roomID);
+        socket.emit("room_list", public_roomID);
+    })
+
+//ルーム参加リクエスト
+    socket.on("join_room", (need) => {
+
+
+        const room = io.sockets.adapter.rooms.get(need.ID);
+        const count = room ? room.size : 0;
+        console.log(count);
+
+        if (count!=1) {
             socket.emit("roomFull");
             return;
         }
+        socket.join(need.ID);
+        socket.data.join_name = need.name;
+        socket.data.roomID = need.ID;
+        Rooms[need.ID].name.push(need.name);
+        Rooms[need.ID].point.push(0);
 
-        socket.join(roomId);
-        const newCount = io.sockets.adapter.rooms.get(roomId).size;
-
-        if (newCount === 1) {
-            socket.emit("waiting");
-        } 
-        else if (newCount === 2) {
-
-            const clients = [...io.sockets.adapter.rooms.get(roomId)];
-
-            const p1 = io.sockets.sockets.get(clients[0]).data.name;
-            const p2 = io.sockets.sockets.get(clients[1]).data.name;
-
-            io.to(roomId).emit("matched", { p1, p2 });
-
-            //  最初のラウンド開始
-            startRound(roomId);
+        const index = public_roomID.indexOf(socket.data.roomID);
+        if (index !== -1) {
+            public_roomID.splice(index, 1);
         }
-    });
 
-    // ======== 回答受信 ========
-    socket.on("answer", (text) => {
-        const roomId = socket.data.roomId;
-        const player = socket.data.name;
+        socket.emit("MAKE_GAME");
 
-        const data = roundData[roomId];
-
-        // テーマに含まれるか？
-        const inTheme = data.answers.includes(text);
-
-        // 頭文字一致？
-        const headMatch = text.startsWith(data.head);
-
-        const correct = inTheme && headMatch;
-
-        // 判定結果を全員に送信
-        io.to(roomId).emit("judgeResult", {
-            player,
-            answer: text,
-            correct
+        io.to(socket.data.roomID).emit("change_point", {
+        person: 1,
+        point: 0
         });
 
-        //  次のラウンドへ
-        setTimeout(() => {
-            startRound(roomId);
-        }, 1500);
+        io.to(socket.data.roomID).emit("change_point", {
+        person: 2,
+        point: 0
+        });
+
+
+        io.to(socket.data.roomID).emit("join_room", { 
+            p1: Rooms[need.ID].name[0],
+            p2: Rooms[need.ID].name[1]
+        });
+    })
+
+// クライアントからthemeの要求and返信
+    socket.on("give_theme", () => {
+        var json_str=JSON.stringify(socket.data);
+        console.log(json_str);
+
+        themeIndex = Math.floor(Math.random()*data.theme.length);
+        setTimeout(function(){
+
+        io.to(socket.data.roomID).emit("give_theme", data.theme[themeIndex].name);
+
+        },50);
     });
 
+// クライアントからword要求and返信
+    socket.on("give_word", () => {
+        wordIndex = Math.floor(Math.random()*data.theme[themeIndex].answer.length);
+        
+        setTimeout(function(){
+
+        io.to(socket.data.roomID).emit("give_word", data.theme[themeIndex].answer[wordIndex][0]);
+
+        },50);
+        
+    });
+
+//通信切断
+    socket.on("disconnect", (reason) => {
+        console.log("切断理由 : ", reason);
+        const index = public_roomID.indexOf(socket.data.roomID);
+        if (index !== -1) {
+            Rooms[socket.data.roomID].name = [];
+            Rooms[socket.data.roomID].point = [];
+            public_roomID.splice(index, 1);
+        }
+        socket.to(socket.data.roomID).emit("cut");
+        io.in(socket.data.roomID).socketsLeave(socket.data.roomID);
+        delete Rooms[socket.data.roomID];
+    });
+    
+// クライアントからの正誤判定要求
+    socket.on("ans_check", async (arg) => {
+        const person = arg.you;
+        const ans = arg.ans;
+        const ret = await ans_check(themeIndex, wordIndex, ans);
+
+        if(ret.TF ==="ok"){
+            Rooms[socket.data.roomID].point[person-1] += ret.PT;
+            const point = Rooms[socket.data.roomID].point[person-1];
+            /*
+            if(point>=100){
+                socket.emit("WIN");
+                socket.to(socket.data.roomID).emit("LOSE");
+                io.to(socket.data.roomID).emit("room_out");
+                return;
+            }
+            */
+            socket.to(socket.data.roomID).emit("Another_player", {person, ans});
+            io.to(socket.data.roomID).emit("change_point", {point, person});
+            socket.emit("True");
+        }
+
+        else if(ret.TF === "NG"){
+            socket.emit("False");
+        }
+
+        else if(ret.TF === "NNG"){
+            Rooms[socket.data.roomID].point[person-1] -= ret.PT;
+            const point =Rooms[socket.data.roomID].point[person-1];
+            io.to(socket.data.roomID).emit("change_point", {point, person});
+            socket.emit("NG");
+        }
+
+        else{console.log("error");}
+
+        
+    });
+//AI使わない
+    socket.on("don't_use_AI", (arg) => {
+        const person = arg.you;
+        const ans = arg.ans;
+        Rooms[socket.data.roomID].point[person-1] -= 50;
+        const point = Rooms[socket.data.roomID].point[person-1];
+        /*
+        if(point>=100){
+            socket.emit("WIN");
+            socket.to(socket.data.roomID).emit("LOSE");
+            io.to(socket.data.roomID).emit("room_out");
+            return;
+        }
+        */
+        socket.emit("NG");
+        socket.to(socket.data.roomID).emit("Another_player", {person, ans});
+        io.to(socket.data.roomID).emit("change_point", {point, person});
+    })
+
+
+//クライアントからのAI判定要求
+    socket.on("AI_test", async (ret) => {
+        const person=ret.you;
+        const ans = ret.ans;
+        console
+        const AI_check = await testAI(themeIndex, data.theme[themeIndex].answer[wordIndex][0], ans);
+        if(AI_check.includes("1")){
+            Rooms[socket.data.roomID].point[person-1] += 100;
+            const point = Rooms[socket.data.roomID].point[person-1];
+            io.to(socket.data.roomID).emit("change_point", {point, person});
+            socket.emit("True");
+            socket.to(socket.data.roomID).emit("Another_player", {person, ans});
+        }
+
+        else if(AI_check.includes("0")){
+            const point = Rooms[socket.data.roomID].point[person-1];
+            Rooms[socket.data.roomID].point[person-1] -= 50;
+            io.to(socket.data.roomID).emit("change_point", {point, person});
+            socket.to(socket.data.roomID).emit("Another_player", {person, ans});
+            socket.emit("NG");
+        }
+    });
 });
 
-server.listen(PORT, () => {
-    console.log("Server running on http://localhost:" + PORT);
-});
 
+server.listen(port, () => console.log("server get up"))
